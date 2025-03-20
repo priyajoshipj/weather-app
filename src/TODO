@@ -1,0 +1,23 @@
+// // Search for locations
+GET https://geocoding-api.open-meteo.com/v1/search?name={city}&count=10&language=en&format=json
+// // Get weather forecast
+GET https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto
+ 
+Search Component
+Input field with autocomplete for city search
+Display up to 5 matching results
+Show loading state during API calls
+
+Current Weather Display
+Temperature (current, feels like)
+Humidity
+Wind speed
+Precipitation
+Time of last update
+5-Day Forecast
+Daily high/low temperatures
+Precipitation probability
+Implement as a horizontally scrollable component on mobile
+ 
+
+ // vithun.g@maersk.com
