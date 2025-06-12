@@ -3,7 +3,7 @@ import './styles.css';
 
 const WeatherDisplay = ({ weatherData, forecastData }) => {
     if (!weatherData) {
-        return <div className="no-data">Select a city to see weather information</div>;
+        return null;
     }
 
     return (

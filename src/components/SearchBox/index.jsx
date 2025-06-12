@@ -48,6 +48,7 @@ const SearchBox = ({ onSelectLocation }) => {
         const value = e.target.value;
         setSearchValue(value);
         setIsFocused(true);
+        console.warn("value>>>>", value);
         if (!value.trim()) {
             setLocationData([]);
             setError(null);

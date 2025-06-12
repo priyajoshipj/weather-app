@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import SearchBox from './components/SearchBox';
 import WeatherDisplay from './components/WeatherDisplay';
-
+import './App.css';
 const App = () => {
   const [weatherData, setWeatherData] = useState(null);
   const [forecastData, setForecastData] = useState([]);
@@ -13,7 +13,7 @@ const App = () => {
         `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto`
       );
       const data = await response.json();
-
+      console.warn("locaaaaaa", location)
       setWeatherData({
         temperature: data.current.temperature_2m,
         humidity: data.current.relative_humidity_2m,

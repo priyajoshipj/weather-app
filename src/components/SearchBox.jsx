@@ -5,9 +5,11 @@ import { getApiResponseResult } from '../utils.js';
 function SearchBox(props) {
   const [searchValue, setSearchValue] = useState('');
   const [locationData, setLocationData] = useState([]);
-  const [weatherData, setWeatherData] = useState(null); // Store weather data
-  const [forecastData, setForecastData] = useState([]); // Store 5-day forecast data
+  const [weatherData, setWeatherData] = useState(null);
+  const [forecastData, setForecastData] = useState(null);
   const [isFocused, setIsFocused] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
   const data = useContext(StoreContext);
 
   // Get location data from the API based on the search value
@@ -16,9 +18,18 @@ function SearchBox(props) {
       setLocationData([]);
       return;
     }
-    const result = await getApiResponseResult(searchValue);
-    if (result) {
-      setLocationData(result);
+    try {
+      console.log('Fetching location for:', searchValue);
+      const result = await getApiResponseResult(searchValue);
+      console.log('API Response:', result);
+      if (result && Array.isArray(result)) {
+        setLocationData(result);
+      } else {
+        setLocationData([]);
+      }
+    } catch (error) {
+      console.error('Error fetching location data:', error);
+      setError('Failed to fetch location data');
     }
   };
 
@@ -26,7 +37,7 @@ function SearchBox(props) {
   useEffect(() => {
     const timer = setTimeout(() => {
       getLocation();
-    }, 500); // Debounce to avoid making too many API requests
+    }, 500);
 
     return () => {
       clearTimeout(timer);
@@ -35,44 +46,79 @@ function SearchBox(props) {
 
   // Fetch weather data from Open-Meteo API based on latitude and longitude
   const fetchWeatherData = async (lat, lon) => {
+    setIsLoading(true);
+    setError(null);
     try {
       const response = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto`
       );
+
+      if (!response.ok) {
+        throw new Error('Weather data fetch failed');
+      }
+
       const data = await response.json();
       if (data) {
-        setWeatherData(data.current); // Set current weather data
-        setForecastData(data.daily); // Set 5-day forecast data
+        setWeatherData(data.current);
+        setForecastData(data.daily);
       }
     } catch (error) {
       console.error('Error fetching weather data:', error);
+      setError('Failed to fetch weather data');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Handle location selection and fetch weather data
   const handleSelectLocation = (location) => {
-    setSearchValue(`${location.name}, ${location.country}`);
-    setLocationData([]); // Clear suggestions after selection
+    console.log('handleSelectLocation called with:', location);
+    if (!location || !location.latitude || !location.longitude) {
+      console.error('Invalid location data:', location);
+      setError('Invalid location data');
+      return;
+    }
 
-    // Fetch weather data using selected location's lat and lon
+    setSearchValue(`${location.name}, ${location.country}`);
+    setLocationData([]);
     fetchWeatherData(location.latitude, location.longitude);
   };
 
   // Render the location suggestions list
   const renderLocationList = () => {
+    console.log('Rendering location list. Data:', locationData);
+    console.log('isFocused:', isFocused);
+
     if (locationData.length === 0 || !isFocused) return null;
 
     return (
       <ul className="list-box">
-        {locationData.map((location) => (
-          <li
-            key={location.id}
-            onClick={() => handleSelectLocation(location)}
-            className="list-item"
-          >
-            {location.name} - {location.country}
-          </li>
-        ))}
+        {locationData.map((location) => {
+          console.log('Rendering location item:', location);
+          return (
+            <li
+              key={`${location.id}-${location.latitude}-${location.longitude}`}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Location clicked:', location);
+                handleSelectLocation(location);
+              }}
+              className="list-item"
+              style={{
+                cursor: 'pointer',
+                padding: '10px',
+                border: '1px solid #ccc',
+                borderRadius: '5px',
+                marginBottom: '5px',
+                backgroundColor: '#fff',
+                transition: 'background-color 0.2s'
+              }}
+            >
+              {location.name}, {location.country}
+            </li>
+          );
+        })}
       </ul>
     );
   };
@@ -97,21 +143,23 @@ function SearchBox(props) {
 
   // Render the 5-day forecast
   const renderForecast = () => {
-    if (forecastData.length === 0) return null;
+    if (!forecastData || !forecastData.time || forecastData.time.length === 0) return null;
 
     return (
       <div className="forecast">
-        <h3>5-Day Forecast</h3>
-        <div className="forecast-items">
-          {forecastData.map((day, index) => (
-            <div className="forecast-item" key={index}>
-              <div>{new Date(day.timestamp * 1000).toLocaleDateString()}</div>
-              <div>High: {day.temperature_2m_max}°C</div>
-              <div>Low: {day.temperature_2m_min}°C</div>
-              <div>Precipitation: {day.precipitation_sum} mm</div>
-            </div>
-          ))}
-        </div>
+        <h3 style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>5-Day Forecast</h3>
+
+
+        {forecastData.time.map((date, index) => (
+          <div className="forecast-item" key={date}>
+            <div>{new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+            <div>High: {forecastData.temperature_2m_max[index]}°C</div>
+            <div>Low: {forecastData.temperature_2m_min[index]}°C</div>
+            <div>Precipitation: {forecastData.precipitation_sum[index]} mm</div>
+          </div>
+        ))}
+
+
       </div>
     );
   };
@@ -120,12 +168,24 @@ function SearchBox(props) {
     <div className="search-box-container">
       <input
         type="text"
-        placeholder="Search city..."
+        placeholder="Select a city to see weather information...."
         value={searchValue}
-        onChange={(e) => setSearchValue(e.target.value)}
-        onFocus={() => setIsFocused(true)} // Show suggestions when the input is focused
-        onBlur={() => setIsFocused(false)} // Hide suggestions when the input is blurred
+        onChange={(e) => {
+          console.log('Input changed:', e.target.value);
+          setSearchValue(e.target.value);
+        }}
+        onFocus={() => {
+          console.log('Input focused');
+          setIsFocused(true);
+        }}
+        onBlur={() => {
+          console.log('Input blurred');
+          // Add a small delay to allow click events to fire
+          setTimeout(() => setIsFocused(false), 200);
+        }}
       />
+      {error && <div className="error">{error}</div>}
+      {isLoading && <div className="loading">Loading weather data...</div>}
       {renderLocationList()}
       {renderCurrentWeather()}
       {renderForecast()}
