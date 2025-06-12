@@ -3,7 +3,11 @@
 A modern React weather application that allows users to search for any city and view the current weather and a 5-day forecast. Built with React, Vite, and the Open-Meteo API.
 
 
-https://github.com/user-attachments/assets/89e3e96b-5352-4094-8559-65b6fbd8bdfc
+
+
+https://github.com/user-attachments/assets/357924bb-b6b0-4fa2-a9ae-a18852a3cc69
+
+
 
 
 ## Features
